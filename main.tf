@@ -29,7 +29,7 @@ resource "azurerm_resource_group" "ocrdemorg" {
 #Azure function
 resource "azurerm_storage_account" "functionstorage" {
   name                     = "functionsappocrsa"
-  resource_group_name      = azurerm_resource_group.ocrdemorg
+  resource_group_name      = azurerm_resource_group.ocrdemorg.name
   location                 = azurerm_resource_group.ocrdemorg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
@@ -64,8 +64,8 @@ resource "azurerm_app_configuration" "appconf" {
 }
 
 #Azure keyvault
-resource "azurerm_key_vault" "ocrkeyvalut" {
-  name                        = "ocrkeyvault"
+resource "azurerm_key_vault" "ocrkeyvault" {
+  name                        = "ocrkeyvault1001"
   location                    = azurerm_resource_group.ocrdemorg.location
   resource_group_name         = azurerm_resource_group.ocrdemorg.name
   enabled_for_disk_encryption = true
