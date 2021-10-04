@@ -79,9 +79,10 @@ resource "azurerm_function_app" "ocrfunction" {
   ]
 
   app_settings = {
-    OcrApiKey = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.ocrkey.version})",
+    OcrApiKey = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.ocrkey.name}/${azurerm_key_vault_secret.ocrkey.version})",
     OcrEndPoint = "${azurerm_cognitive_account.cognitiveservices.endpoint}/vision/v2.0/ocr",
-    simpleocrstorage_STORAGE = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.storageprimaryconstring.version})"
+    simpleocrstorage_STORAGE = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.storageprimaryconstring.name}/${azurerm_key_vault_secret.storageprimaryconstring.version})"
+    CosmosDbConnectionString = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.name}/${azurerm_key_vault_secret.cosmosdbconstring.version})"
   }
 }
 
@@ -222,7 +223,8 @@ resource "azurerm_key_vault_access_policy" "accesspolicywebapp" {
   ]
 
   secret_permissions = [
-    "Get"
+    "Get",
+    "List"
   ]
 }
 
@@ -236,7 +238,8 @@ resource "azurerm_key_vault_access_policy" "accesspolicyocrfunction" {
   ]
 
   secret_permissions = [
-    "Get"
+    "Get",
+    "List"
   ]
 }
 
@@ -271,7 +274,7 @@ resource "azurerm_app_service" "ocrwebapp" {
   connection_string {
     name  = "AppConfig"
     type  = "Custom"
-    value = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.version})"
+    value = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.name}/${azurerm_key_vault_secret.cosmosdbconstring.version})"
     
   }
 }
