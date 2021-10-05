@@ -178,7 +178,8 @@ resource "azurerm_key_vault_secret" "cosmosdbconstring" {
   value        = azurerm_cosmosdb_account.ocrcosmosdbaccount.connection_strings[0]
   key_vault_id = azurerm_key_vault.ocrkeyvault.id
   depends_on = [
-    azurerm_cosmosdb_account.ocrcosmosdbaccount
+    azurerm_cosmosdb_account.ocrcosmosdbaccount,
+    azurerm_key_vault_access_policy.accesspolicydefault
   ]
 }
 
@@ -187,7 +188,8 @@ resource "azurerm_key_vault_secret" "ocrkey" {
   value        = azurerm_cognitive_account.cognitiveservices.primary_access_key
   key_vault_id = azurerm_key_vault.ocrkeyvault.id
   depends_on = [
-    azurerm_cognitive_account.cognitiveservices
+    azurerm_cognitive_account.cognitiveservices,
+    azurerm_key_vault_access_policy.accesspolicydefault
   ]
 }
 
@@ -196,7 +198,8 @@ resource "azurerm_key_vault_secret" "storageprimaryconstring" {
   value        = azurerm_storage_account.ocrblobstorage.primary_connection_string
   key_vault_id = azurerm_key_vault.ocrkeyvault.id
   depends_on = [
-    azurerm_storage_account.ocrblobstorage
+    azurerm_storage_account.ocrblobstorage,
+    azurerm_key_vault_access_policy.accesspolicydefault
   ]
 }
 
@@ -205,7 +208,8 @@ resource "azurerm_key_vault_secret" "cosmosdbprimarykey" {
   value        = azurerm_cosmosdb_account.ocrcosmosdbaccount.primary_key
   key_vault_id = azurerm_key_vault.ocrkeyvault.id
   depends_on = [
-    azurerm_cosmosdb_account.ocrcosmosdbaccount
+    azurerm_cosmosdb_account.ocrcosmosdbaccount,
+    azurerm_key_vault_access_policy.accesspolicydefault
   ]
 }
 
