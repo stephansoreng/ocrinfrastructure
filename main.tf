@@ -263,6 +263,10 @@ resource "azurerm_app_service" "ocrwebapp" {
   resource_group_name = azurerm_resource_group.ocrdemorg.name
   app_service_plan_id = azurerm_app_service_plan.webappserviceplan.id
 
+  site_config {
+    dotnet_core_version = "v3.1"
+  }
+
   /*
   app_settings = {
     "AppConfig" = "some-value"
