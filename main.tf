@@ -67,7 +67,8 @@ resource "azurerm_function_app" "ocrfunction" {
   resource_group_name        = azurerm_resource_group.ocrdemorg.name
   app_service_plan_id        = azurerm_app_service_plan.ocrfunctionappserviceplan.id
   storage_account_name       = azurerm_storage_account.functionstorage.name
-  storage_account_access_key = azurerm_storage_account.functionstorage.primary_access_key
+  storage_account_access_key = azurerm_storage_account.functionstorage.primary_access_key 
+  version = "~3"
 
   identity {
     type = "SystemAssigned"
@@ -80,7 +81,7 @@ resource "azurerm_function_app" "ocrfunction" {
 
   app_settings = {
     OcrApiKey = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.ocrkey.name}/${azurerm_key_vault_secret.ocrkey.version})",
-    OcrEndPoint = "${azurerm_cognitive_account.cognitiveservices.endpoint}/vision/v2.0/ocr",
+    OcrEndPoint = "${azurerm_cognitive_account.cognitiveservices.endpoint}vision/v2.0/ocr",
     simpleocrstorage_STORAGE = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.storageprimaryconstring.name}/${azurerm_key_vault_secret.storageprimaryconstring.version})"
     CosmosDbConnectionString = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.name}/${azurerm_key_vault_secret.cosmosdbconstring.version})"
   }
