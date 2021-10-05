@@ -67,8 +67,8 @@ resource "azurerm_function_app" "ocrfunction" {
   resource_group_name        = azurerm_resource_group.ocrdemorg.name
   app_service_plan_id        = azurerm_app_service_plan.ocrfunctionappserviceplan.id
   storage_account_name       = azurerm_storage_account.functionstorage.name
-  storage_account_access_key = azurerm_storage_account.functionstorage.primary_access_key 
-  version = "~3"
+  storage_account_access_key = azurerm_storage_account.functionstorage.primary_access_key
+  version                    = "~3"
 
   identity {
     type = "SystemAssigned"
@@ -80,10 +80,12 @@ resource "azurerm_function_app" "ocrfunction" {
   ]
 
   app_settings = {
-    OcrApiKey = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.ocrkey.name}/${azurerm_key_vault_secret.ocrkey.version})",
-    OcrEndPoint = "${azurerm_cognitive_account.cognitiveservices.endpoint}vision/v2.0/ocr",
-    simpleocrstorage_STORAGE = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.storageprimaryconstring.name}/${azurerm_key_vault_secret.storageprimaryconstring.version})"
-    CosmosDbConnectionString = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.name}/${azurerm_key_vault_secret.cosmosdbconstring.version})"
+    OcrApiKey                       = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.ocrkey.name}/${azurerm_key_vault_secret.ocrkey.version})",
+    OcrEndPoint                     = "${azurerm_cognitive_account.cognitiveservices.endpoint}vision/v2.0/ocr",
+    simpleocrstorage_STORAGE        = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.storageprimaryconstring.name}/${azurerm_key_vault_secret.storageprimaryconstring.version})"
+    CosmosDbConnectionString        = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.name}/${azurerm_key_vault_secret.cosmosdbconstring.version})"
+    WEBSITE_ENABLE_SYNC_UPDATE_SITE = true
+    WEBSITE_RUN_FROM_PACKAGE        = 1
   }
 }
 
@@ -97,7 +99,7 @@ resource "azurerm_storage_account" "ocrblobstorage" {
 }
 
 resource "azurerm_storage_container" "ocrstoragecontainer" {
-  name                  = "container1"
+  name                  = var.storage_containername
   storage_account_name  = azurerm_storage_account.ocrblobstorage.name
   container_access_type = "private"
 }
@@ -111,11 +113,11 @@ resource "azurerm_cosmosdb_account" "ocrcosmosdbaccount" {
   kind                = "GlobalDocumentDB"
 
   consistency_policy {
-    consistency_level       = "BoundedStaleness"
+    consistency_level = "BoundedStaleness"
   }
 
   geo_location {
-    location = azurerm_resource_group.ocrdemorg.location
+    location          = azurerm_resource_group.ocrdemorg.location
     failover_priority = 0
   }
 }
@@ -167,7 +169,7 @@ resource "azurerm_key_vault" "ocrkeyvault" {
   sku_name = "standard"
 }
 output "cosmosdb_connectionstrings" {
-  value = azurerm_cosmosdb_account.ocrcosmosdbaccount.connection_strings
+  value     = azurerm_cosmosdb_account.ocrcosmosdbaccount.connection_strings
   sensitive = true
 }
 
@@ -198,6 +200,15 @@ resource "azurerm_key_vault_secret" "storageprimaryconstring" {
   ]
 }
 
+resource "azurerm_key_vault_secret" "cosmosdbprimarykey" {
+  name         = "CosmosDBPrimaryKey"
+  value        = azurerm_cosmosdb_account.ocrcosmosdbaccount.primary_key
+  key_vault_id = azurerm_key_vault.ocrkeyvault.id
+  depends_on = [
+    azurerm_cosmosdb_account.ocrcosmosdbaccount
+  ]
+}
+
 resource "azurerm_key_vault_access_policy" "accesspolicydefault" {
   key_vault_id = azurerm_key_vault.ocrkeyvault.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
@@ -210,14 +221,15 @@ resource "azurerm_key_vault_access_policy" "accesspolicydefault" {
     "Delete",
     "Recover",
     "Backup",
-    "Restore"
+    "Restore",
+    "Purge"
   ]
 }
 
 resource "azurerm_key_vault_access_policy" "accesspolicywebapp" {
   key_vault_id = azurerm_key_vault.ocrkeyvault.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = "${azurerm_app_service.ocrwebapp.identity.0.principal_id}"
+  object_id    = azurerm_app_service.ocrwebapp.identity.0.principal_id
   depends_on = [
     azurerm_app_service.ocrwebapp,
     azurerm_key_vault_access_policy.accesspolicydefault
@@ -244,12 +256,14 @@ resource "azurerm_key_vault_access_policy" "accesspolicyocrfunction" {
   ]
 }
 
-
 #App service (web app)
 resource "azurerm_app_service_plan" "webappserviceplan" {
   name                = "ocrwebapp-appserviceplan${random_integer.ri.result}"
   location            = azurerm_resource_group.ocrdemorg.location
   resource_group_name = azurerm_resource_group.ocrdemorg.name
+  //kind = "Linux"
+  //reserved = true
+
 
   sku {
     tier = "Free"
@@ -262,33 +276,24 @@ resource "azurerm_app_service" "ocrwebapp" {
   location            = azurerm_resource_group.ocrdemorg.location
   resource_group_name = azurerm_resource_group.ocrdemorg.name
   app_service_plan_id = azurerm_app_service_plan.webappserviceplan.id
-
-  site_config {
-    windows_fx_version = "DOTNETCORE|3.1"
-  }
-
-  /*
+  
   app_settings = {
-    "AppConfig" = "some-value"
+    "CosmosDb:DatabaseName" = var.cosmosdb_dbname,
+    "CosmosDb:ContainerName" = var.cosmosdb_containername,
+    "CosmosDb:Key" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbprimarykey.name}/${azurerm_key_vault_secret.cosmosdbprimarykey.version})",
+    "CosmosDb:Account" = azurerm_cosmosdb_account.ocrcosmosdbaccount.endpoint
   }
-  */
+  
   identity {
     type = "SystemAssigned"
   }
 
+  /*
   connection_string {
     name  = "AppConfig"
     type  = "Custom"
-    value = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.cosmosdbconstring.name}/${azurerm_key_vault_secret.cosmosdbconstring.version})"
-    
-  }
-}
+    value = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.ocrkeyvault.vault_uri}secrets/${azurerm_key_vault_secret.appconfconstring.name}/${azurerm_key_vault_secret.appconfconstring.version})"
 
-#App configuration
-/*
-resource "azurerm_app_configuration" "appconf" {
-  name                = "appConf1"
-  resource_group_name = azurerm_resource_group.ocrdemorg.name
-  location            = azurerm_resource_group.ocrdemorg.location
+  }
+  */
 }
-*/
