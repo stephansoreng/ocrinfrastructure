@@ -111,6 +111,7 @@ resource "azurerm_cosmosdb_account" "ocrcosmosdbaccount" {
   resource_group_name = azurerm_resource_group.ocrdemorg.name
   offer_type          = "Standard"
   kind                = "GlobalDocumentDB"
+  enable_free_tier    = true
 
   consistency_policy {
     consistency_level = "BoundedStaleness"
